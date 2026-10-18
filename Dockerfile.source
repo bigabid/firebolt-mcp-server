@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 
-# Multi-arch image built from source (DO-242). The upstream Dockerfile is kept
-# for goreleaser, which copies a prebuilt binary.
+# Multi-arch image built from source with Docker buildx. The Dockerfile next to
+# it is used by goreleaser, which copies a prebuilt binary.
 
 # Compile stage: runs natively on the build host, cross-compiles per target
 FROM --platform=$BUILDPLATFORM golang:1.25.6-bookworm AS build
