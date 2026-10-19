@@ -1,0 +1,25 @@
+# syntax=docker/dockerfile:1
+
+# Multi-arch image built from source with Docker buildx. The Dockerfile next to
+# it is used by goreleaser, which copies a prebuilt binary.
+
+# Compile stage: runs natively on the build host, cross-compiles per target
+FROM --platform=$BUILDPLATFORM golang:1.25.14-bookworm AS build
+ARG TARGETOS TARGETARCH
+ARG VERSION=0.0.0
+ARG COMMIT=unknown
+ARG DATE=unknown
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY cmd ./cmd
+COPY pkg ./pkg
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -buildvcs=false \
+    -ldflags "-s -w -X main.version=${VERSION} -X main.commit=${COMMIT} -X main.date=${DATE}" \
+    -o /out/firebolt-mcp-server ./cmd/firebolt-mcp-server
+
+# Runtime stage: per-target, only copies the static binary
+FROM gcr.io/distroless/static-debian12:nonroot AS production
+COPY --from=build /out/firebolt-mcp-server /usr/local/bin/firebolt-mcp-server
+EXPOSE 8080
+ENTRYPOINT ["/usr/local/bin/firebolt-mcp-server"]
